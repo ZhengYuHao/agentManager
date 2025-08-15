@@ -48,6 +48,7 @@ class QwenClient:
 
         可用的智能体包括:
         1. 初二数学助手 - 专门解答初二下学期数学问题的智能体，包括代数、几何等知识点
+        2. 古诗助手 - 专门处理古诗相关问题的智能体，包括古诗赏析、创作、背诵等
 
         请按照以下格式回复:
         {{
@@ -61,7 +62,8 @@ class QwenClient:
         }}
 
         如果问题是数学相关的，请推荐"初二数学助手"智能体。
-        如果问题不是数学相关的，请回复空的智能体列表。
+        如果问题是古诗相关的，请推荐"古诗助手"智能体。
+        如果问题不是数学或古诗相关的，请回复空的智能体列表。
         只返回JSON格式的结果，不要添加其他解释。
         """
 
@@ -69,7 +71,7 @@ class QwenClient:
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=[
-                    {"role": "system", "content": "你是一个智能体调度系统，能够根据用户问题选择合适的智能体。"},
+                    {"role": "system", "content": "你是一个智能体调度系统，能够根据用户问题选择合适的智能体，你能选择的智能体有多个。"},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.1,
@@ -149,14 +151,73 @@ class QwenClient:
                 "final_answer": "请查看详细解答"
             }
         except Exception as e:
-            # 出错时返回错误信息
-            print(f"执行数学任务时出错: {e}")
             return {
-                "result": "错误",
-                "explanation": f"解答过程中出现错误: {str(e)}",
+                "result": f"处理数学问题时出错: {query}",
+                "explanation": f"错误信息: {str(e)}",
                 "formula": "",
                 "steps": [],
-                "final_answer": "无法解答"
+                "final_answer": "处理失败"
+            }
+
+    async def execute_poetry_task(self, query: str) -> Dict[str, Any]:
+        """
+        执行古诗任务，调用Qwen模型处理古诗相关问题
+        
+        Args:
+            query: 古诗相关问题查询
+            
+        Returns:
+            Dict[str, Any]: 古诗问题解答结果
+        """
+        # 构建古诗问题解答的提示词
+        prompt = f"""
+        你是一个专业的古典文学老师，能够详细解答各种古诗相关问题。
+        请处理以下古诗相关问题，并提供详细的解答：
+
+        问题: "{query}"
+
+        请按照以下结构回复:
+        1. 问题分析: 简要分析问题类型和解答思路
+        2. 详细解答: 详细回答问题的各个方面
+        3. 相关知识点: 列出涉及的古诗知识点或文学常识
+
+        请用中文回复，确保解答清晰易懂，适合古诗爱好者理解。
+        """
+
+        try:
+            # 使用asyncio运行阻塞的API调用
+            response = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "你是一个专业的古典文学老师，能够详细解答各种古诗相关问题。"},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=1500
+                )
+            )
+
+            # 返回结果
+            answer = response.choices[0].message.content
+            if not answer:
+                answer = "无法生成解答"
+            
+            return {
+                "result": f"古诗问题解答: {query}",
+                "explanation": answer,
+                "author": "根据具体问题而定",
+                "dynasty": "根据具体问题而定",
+                "poem": "根据具体问题而定"
+            }
+        except Exception as e:
+            return {
+                "result": f"处理古诗问题时出错: {query}",
+                "explanation": f"错误信息: {str(e)}",
+                "author": "",
+                "dynasty": "",
+                "poem": ""
             }
 
     def execute_generic_task(self, agent_id: str, input_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -203,10 +264,7 @@ class QwenClient:
                 "output": result
             }
         except Exception as e:
-            # 出错时返回错误信息
-            print(f"执行通用任务时出错: {e}")
             return {
-                "result": "错误",
-                "input": input_data,
-                "output": f"任务执行过程中出现错误: {str(e)}"
+                "result": f"处理问题时出错: {query}",
+                "answer": f"错误信息: {str(e)}"
             }

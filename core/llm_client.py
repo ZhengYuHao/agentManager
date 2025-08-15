@@ -38,6 +38,19 @@ class LLMClient:
         except:
             # 如果无法访问agent_registry，继续执行默认逻辑
             pass
+            
+        # 检查是否是古诗智能体
+        try:
+            from core.registry_manager import agent_registry
+            agent = agent_registry.get_agent(agent_id)
+            
+            from agents.poetry_agent import POETRY_AGENT_CONFIG, execute_poetry_task
+            if agent and POETRY_AGENT_CONFIG["name"] == agent.name:
+                # 调用古诗智能体的专用处理函数，该函数会使用Qwen大模型
+                return await execute_poetry_task(input_data)
+        except:
+            # 如果无法访问agent_registry，继续执行默认逻辑
+            pass
         
         # 对于其他智能体，使用通用的Qwen客户端
         from core.qwen_client import QwenClient

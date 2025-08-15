@@ -49,10 +49,14 @@ async def process_user_query(task_request: TaskRequest):
         return TaskResponse(
             task_id=task_id,
             target_agents=validated_agents,
-            response="Agents selected successfully"
+            response="已找到相关智能体"
         )
+    except HTTPException:
+        # 重新抛出HTTP异常
+        raise
     except Exception as e:
-        # 如果是HTTPException则重新抛出，否则包装成HTTPException
-        if isinstance(e, HTTPException):
-            raise e
-        raise HTTPException(status_code=500, detail=str(e))
+        # 其他异常处理
+        raise HTTPException(
+            status_code=500,
+            detail=f"处理查询时发生错误: {str(e)}"
+        )
