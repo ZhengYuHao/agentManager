@@ -49,6 +49,7 @@ class QwenClient:
         可用的智能体包括:
         1. 初二数学助手 - 专门解答初二下学期数学问题的智能体，包括代数、几何等知识点
         2. 古诗助手 - 专门处理古诗相关问题的智能体，包括古诗赏析、创作、背诵等
+        3. 生物学助手 - 专门解答生物学相关问题的智能体，包括细胞生物学、遗传学、生态学等
 
         请按照以下格式回复:
         {{
@@ -63,7 +64,8 @@ class QwenClient:
 
         如果问题是数学相关的，请推荐"初二数学助手"智能体。
         如果问题是古诗相关的，请推荐"古诗助手"智能体。
-        如果问题不是数学或古诗相关的，请回复空的智能体列表。
+        如果问题是生物学相关的，请推荐"生物学助手"智能体。
+        如果问题不是数学、古诗或生物学相关的，请回复空的智能体列表。
         只返回JSON格式的结果，不要添加其他解释。
         """
 
@@ -218,6 +220,67 @@ class QwenClient:
                 "author": "",
                 "dynasty": "",
                 "poem": ""
+            }
+
+    async def execute_biology_task(self, query: str) -> Dict[str, Any]:
+        """
+        执行生物学任务，调用Qwen模型解答生物学问题
+        
+        Args:
+            query: 生物学问题查询
+            
+        Returns:
+            Dict[str, Any]: 生物学问题解答结果
+        """
+        # 构建生物学问题解答的提示词
+        prompt = f"""
+        你是一个专业的生物学老师，能够详细解答各种生物学问题。
+        请解答以下生物学问题，并提供详细的解释：
+
+        问题: "{query}"
+
+        请按照以下结构回复:
+        1. 问题分析: 简要分析问题类型和解题思路
+        2. 详细解答: 详细解释问题的各个方面
+        3. 相关知识点: 列出涉及的生物学知识点
+
+        请用中文回复，确保解答清晰易懂，适合生物学学习者理解。
+        """
+
+        try:
+            # 使用asyncio运行阻塞的API调用
+            response = await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "你是一个专业的生物学老师，能够详细解答各种生物学问题。"},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.3,
+                    max_tokens=1500
+                )
+            )
+
+            # 返回结果
+            answer = response.choices[0].message.content
+            if not answer:
+                answer = "无法生成解答"
+            
+            return {
+                "result": f"生物学问题解答: {query}",
+                "explanation": answer,
+                "key_points": ["请参考详细解答"],
+                "related_terms": ["根据具体问题而定"],
+                "example": "根据具体问题而定"
+            }
+        except Exception as e:
+            return {
+                "result": f"处理生物学问题时出错: {query}",
+                "explanation": f"错误信息: {str(e)}",
+                "key_points": [],
+                "related_terms": [],
+                "example": ""
             }
 
     def execute_generic_task(self, agent_id: str, input_data: Dict[str, Any]) -> Dict[str, Any]:

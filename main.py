@@ -30,6 +30,10 @@ async def startup_event():
     # 导入并注册古诗智能体
     from agents.poetry_agent import register_poetry_agent
     register_poetry_agent(agent_registry)
+    
+    # 导入并注册生物学智能体
+    from agents.biology_agent import register_biology_agent
+    register_biology_agent(agent_registry)
 
 @app.get("/")
 async def root():
