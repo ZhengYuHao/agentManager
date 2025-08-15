@@ -38,23 +38,13 @@ async def process_user_query(task_request: TaskRequest):
                         "name": agent.name,
                         "description": agent.description
                     })
-        
-        # 如果没有找到匹配的智能体，尝试查找数学相关智能体
+        print(f"valida{validated_agents}")
+        # 如果仍然没有找到任何智能体，返回错误信息
         if not validated_agents:
-            from core.registry_manager import agent_registry
-            all_workers = agent_registry.list_agents("worker", "active")
-            
-            # 通过模块化方式检查数学智能体
-            from agents.math_agent import MATH_AGENT_CONFIG
-            math_agents = [agent for agent in all_workers 
-                          if MATH_AGENT_CONFIG["name"] == agent.name]
-            
-            for agent in math_agents:
-                validated_agents.append({
-                    "id": agent.id,
-                    "name": agent.name,
-                    "description": agent.description
-                })
+            raise HTTPException(
+                status_code=404, 
+                detail="对不起，系统中没有相关智能体能处理您的问题。"
+            )
         
         return TaskResponse(
             task_id=task_id,
@@ -62,4 +52,7 @@ async def process_user_query(task_request: TaskRequest):
             response="Agents selected successfully"
         )
     except Exception as e:
+        # 如果是HTTPException则重新抛出，否则包装成HTTPException
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=str(e))

@@ -2,17 +2,46 @@ from schemas.agent import AgentCreate, AgentUpdate, AgentInDB, AgentStatus
 from typing import List, Dict, Optional
 import uuid
 from datetime import datetime
+import hashlib
 
 
 class AgentRegistry:
     def __init__(self):
         self.agents: Dict[str, AgentInDB] = {}
 
-    def register_agent(self, agent_create: AgentCreate) -> AgentInDB:
+    def _generate_consistent_id(self, agent_name: str) -> str:
+        """
+        根据智能体名称生成一致的ID
+        
+        Args:
+            agent_name: 智能体名称
+            
+        Returns:
+            str: 一致的智能体ID
+        """
+        # 使用MD5哈希确保相同名称总是生成相同的ID
+        return hashlib.md5(agent_name.encode('utf-8')).hexdigest()
+
+    def register_agent(self, agent_create: AgentCreate, agent_id: Optional[str] = None) -> AgentInDB:
         """
         注册新智能体
+        
+        Args:
+            agent_create: 智能体创建信息
+            agent_id: 可选的预定义智能体ID，如果不提供则自动生成
         """
-        agent_id = str(uuid.uuid4())
+        if agent_id is None:
+            # 检查是否可以基于名称生成一致的ID
+            consistent_id = self._generate_consistent_id(agent_create.name)
+            if consistent_id not in self.agents:
+                agent_id = consistent_id
+            else:
+                # 如果基于名称的ID已存在，生成随机ID
+                agent_id = str(uuid.uuid4())
+        elif agent_id in self.agents:
+            # 如果提供的ID已存在，抛出异常
+            raise ValueError(f"Agent with ID {agent_id} already exists")
+        
         agent_in_db = AgentInDB(
             id=agent_id,
             **agent_create.model_dump()
