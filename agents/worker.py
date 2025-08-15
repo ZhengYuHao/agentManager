@@ -1,11 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from schemas.agent import AgentExecutionRequest, AgentExecutionResponse
-from core.agent_registry import AgentRegistry
 from core.llm_client import LLMClient
 import time
 
 worker_router = APIRouter()
-agent_registry = AgentRegistry()
 llm_client = LLMClient()
 
 
@@ -15,6 +13,7 @@ async def execute_agent_task(agent_id: str, execution_request: AgentExecutionReq
     执行指定智能体的任务
     """
     # 检查智能体是否存在且活跃
+    from core.registry_manager import agent_registry
     agent = agent_registry.get_agent(agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")

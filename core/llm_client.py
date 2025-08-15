@@ -31,7 +31,7 @@ class LLMClient:
         if is_math_related:
             # 查找数学智能体的实际ID
             try:
-                from main import agent_registry
+                from core.registry_manager import agent_registry
                 math_agents = [agent for agent in agent_registry.list_agents() 
                               if MATH_AGENT_CONFIG["name"] == agent.name and agent.status.value == "active"]
                 
@@ -82,7 +82,7 @@ class LLMClient:
         
         # 检查是否是数学智能体
         try:
-            from main import agent_registry
+            from core.registry_manager import agent_registry
             agent = agent_registry.get_agent(agent_id)
             
             from agents.math_agent import MATH_AGENT_CONFIG
