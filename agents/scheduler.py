@@ -23,7 +23,6 @@ async def process_user_query(task_request: TaskRequest):
     try:
         # 使用Qwen模型解析用户意图
         target_agents = await llm_client.parse_intent(task_request.query)
-        
         # 验证智能体是否存在
         validated_agents = []
         for agent_info in target_agents:
