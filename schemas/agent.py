@@ -61,10 +61,12 @@ class Message(BaseModel):
 class TaskRequest(BaseModel):
     query: str = Field(..., description="用户查询")
     context: Optional[Dict[str, Any]] = Field(default={}, description="上下文信息")
+    session_id: Optional[str] = Field(default=None, description="会话ID")
 
 
 class TaskResponse(BaseModel):
     task_id: str = Field(..., description="任务ID")
+    session_id: str = Field(..., description="会话ID")
     target_agents: List[Dict[str, str]] = Field(..., description="目标智能体列表")
     response: Optional[str] = Field(None, description="响应内容")
 
