@@ -15,6 +15,11 @@ class AgentStatus(str, Enum):
     OFFLINE = "offline"
 
 
+class AgentSource(str, Enum):
+    INTERNAL = "internal"
+    EXTERNAL = "external"
+
+
 class AgentBase(BaseModel):
     name: str = Field(..., description="智能体名称")
     description: str = Field(..., description="智能体描述")
@@ -23,7 +28,7 @@ class AgentBase(BaseModel):
 
 
 class AgentCreate(AgentBase):
-    pass
+    source: AgentSource = Field(default=AgentSource.INTERNAL, description="智能体来源")
 
 
 class AgentUpdate(BaseModel):
@@ -36,6 +41,7 @@ class AgentUpdate(BaseModel):
 class AgentInDB(AgentBase):
     id: str = Field(..., description="智能体唯一标识")
     status: AgentStatus = Field(default=AgentStatus.ACTIVE, description="智能体状态")
+    source: AgentSource = Field(default=AgentSource.INTERNAL, description="智能体来源")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="创建时间")
     last_heartbeat: Optional[datetime] = Field(None, description="最后心跳时间")
 

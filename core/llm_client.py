@@ -20,6 +20,7 @@ class LLMClient:
         
         # 调用Qwen客户端解析意图
         agents = qwen_client.parse_intent(query)
+        print(f"本次推荐使用的智能体有########{agents}")
         return agents
 
     async def execute_task(self, agent_id: str, input_data: Dict[str, Any]) -> Dict[str, Any]:

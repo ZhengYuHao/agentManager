@@ -106,3 +106,21 @@ class AgentRegistry:
             agent for agent in self.agents.values()
             if agent.agent_type == "worker" and agent.status == AgentStatus.ACTIVE
         ]
+
+    def get_external_agents(self) -> List[AgentInDB]:
+        """
+        获取所有外部智能体
+        """
+        return [
+            agent for agent in self.agents.values()
+            if agent.source == "external"
+        ]
+
+    def get_internal_agents(self) -> List[AgentInDB]:
+        """
+        获取所有内部智能体
+        """
+        return [
+            agent for agent in self.agents.values()
+            if agent.source == "internal"
+        ]

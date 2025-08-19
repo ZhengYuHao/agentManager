@@ -44,27 +44,44 @@ async def process_user_query(task_request: TaskRequest):
         
         # 检查是否是第一次查询
         is_first_query = len(conversation_history[session_id]) == 1
-        print(f"是否是第一次查询：{is_first_query},conversation_history{conversation_history}")
+        # print(f"是否是第一次查询：{is_first_query},conversation_history{conversation_history}")
         # 使用最后一次用户输入作为意图识别的上下文
         last_user_input = task_request.query
         
         # 使用Qwen模型解析用户意图
         target_agents = await llm_client.parse_intent(last_user_input)
+        print(f"大模型返回的agents: {target_agents}")
+        
+        # 打印注册表中的所有agents信息
+        all_agents = agent_registry.list_agents()
+        print("注册表中的所有agents:")
+        for agent in all_agents:
+            print(f"  ID: {agent.id}, Name: {agent.name}, Description: {agent.description}")
         
         # 验证智能体是否存在
         validated_agents = []
         for agent_info in target_agents:
             agent_id: str = agent_info.get("id", "")
+            agent_name: str = agent_info.get("name", "")
             if agent_id:
                 # 延迟导入避免循环导入
                 agent = agent_registry.get_agent(agent_id)
+                if not agent and agent_name:
+                    # 如果通过ID没有找到agent，尝试通过名称查找
+                    all_agents = agent_registry.list_agents()
+                    for a in all_agents:
+                        if a.name == agent_name:
+                            agent = a
+                            break
+                
                 if agent and agent.status.value == "active":
                     validated_agents.append({
                         "id": agent.id,
                         "name": agent.name,
-                        "description": agent.description
+                        "description": agent.description,
+                        "source": agent.source.value  # 添加智能体来源信息
                     })
-        
+        print(f"验证智能体是否存在：{validated_agents}")
         # 如果是第一次查询，强制不返回智能体，而是生成引导性问题
         if is_first_query:
             # 使用LLM生成引导性问题

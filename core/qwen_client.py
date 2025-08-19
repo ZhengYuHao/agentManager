@@ -1,11 +1,13 @@
-from openai import OpenAI
-from core.config import settings
-from core.utils.prompt_utils import read_prompt_from_file, get_agent_prompt, format_prompt
-from typing import Dict, Any, List, Optional
-import asyncio
 import json
 import hashlib
 import os
+import asyncio
+from openai import OpenAI
+from typing import List, Dict, Any, Optional
+from core.config import settings
+from core.utils.prompt_utils import read_prompt_from_file, format_prompt
+from core.registry_manager import agent_registry
+from schemas.agent import AgentInDB
 
 # 获取项目根目录
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -44,78 +46,83 @@ class QwenClient:
         Returns:
             List[Dict[str, str]]: 智能体列表
         """
+        # 获取所有可用的智能体
+        available_agents = agent_registry.list_agents()
+        
+        # 构建智能体描述列表
+        agent_descriptions = []
+        agent_names = []  # 存储智能体名称列表
+        for agent in available_agents:
+            agent_descriptions.append(f"{agent.name} - {agent.description}")
+            agent_names.append(agent.name)
+        
         # 从文件读取提示词
-        print(1111)
         prompt_file_path = os.path.join(PROJECT_ROOT, "prompt", "intent_prompt.txt")
-        print(f"prompt_file_path: {prompt_file_path}")
         try:
             with open(prompt_file_path, "r", encoding="utf-8") as f:
                 prompt_template = f.read()
         except FileNotFoundError:
             # 如果找不到文件，使用默认提示词
-            prompt_template = """你是一个智能体调度系统，需要根据用户的问题决定应该由哪个智能体来处理。
-                                请分析以下用户查询，并确定最适合处理该查询的智能体。
-
-                                用户查询: "{query}"
-
-                                可用的智能体包括:
-                                1. 初二数学助手 - 专门解答初二下学期数学问题的智能体，包括代数、几何等知识点
-                                2. 古诗助手 - 专门处理古诗相关问题的智能体，包括古诗赏析、创作、背诵等
-                                3. 生物学助手 - 专门解答生物学相关问题的智能体，包括细胞生物学、遗传学、生态学等
-
-                                请按照以下格式回复:
-                                {{
-                                    "agents": [
-                                        {{
-                                            "id": "agent-id",
-                                            "name": "智能体名称",
-                                            "description": "智能体描述"
-                                        }}
-                                    ]
-                                }}
-
-                                }}
-
-                                如果问题是数学相关的，请推荐"初二数学助手"智能体。
-                                如果问题是古诗相关的，请推荐"古诗助手"智能体。
-                                如果问题是生物学相关的，请推荐"生物学助手"智能体。
-                                如果问题不是数学、古诗或生物学相关的，请回复空的智能体列表。
-                                只返回JSON格式的结果，不要添加其他解释。"""
-
-        # 构建提示词
-        print("999999999999999999")
-        try:
-            prompt = format_prompt(prompt_template, query=query)
-        except Exception as e:
-            print(f"格式化提示词时出错: {e}")
-            print(f"prompt_template内容: {prompt_template}")
-            print(f"query内容: {query}")
-            # 使用默认模板
-            prompt = f"""你是一个智能体调度系统，需要根据用户的问题决定应该由哪个智能体来处理。
+            agent_list_str = "\n".join([f"{i+1}. {desc}" for i, desc in enumerate(agent_descriptions)])
+            agent_names_str = ", ".join([f'"{name}"' for name in agent_names])
+            prompt_template = f"""你是一个智能体调度系统，需要根据用户的问题决定应该由哪个智能体来处理。
 请分析以下用户查询，并确定最适合处理该查询的智能体。
 
-用户查询: "{query}"
+用户查询: "{{query}}"
 
 可用的智能体包括:
-1. 初二数学助手 - 专门解答初二下学期数学问题的智能体，包括代数、几何等知识点
-2. 古诗助手 - 专门处理古诗相关问题的智能体，包括古诗赏析、创作、背诵等
-3. 生物学助手 - 专门解答生物学相关问题的智能体，包括细胞生物学、遗传学、生态学等
+{agent_list_str}
+
+请从以下智能体名称中选择匹配的智能体:
+{agent_names_str}
 
 请按照以下格式回复:
 {{
     "agents": [
         {{
-            "id": "agent-id",
-            "name": "智能体名称",
-            "description": "智能体描述"
+            "name": "智能体名称"
         }}
     ]
 }}
 
-如果问题是数学相关的，请推荐"初二数学助手"智能体。
-如果问题是古诗相关的，请推荐"古诗助手"智能体。
-如果问题是生物学相关的，请推荐"生物学助手"智能体。
-如果问题不是数学、古诗或生物学相关的，请回复空的智能体列表。
+根据智能体的描述和用户查询内容的匹配度来判断应该推荐哪个智能体。
+只返回JSON格式的结果，不要添加其他解释。"""
+
+        # 构建提示词
+        try:
+            agent_list_str = "\n".join([f"{i+1}. {desc}" for i, desc in enumerate(agent_descriptions)])
+            agent_names_str = ", ".join([f'"{name}"' for name in agent_names])
+            prompt = format_prompt(prompt_template, 
+                                 query=query,
+                                 agent_list=agent_list_str,
+                                 agent_names_list=agent_names_str)
+        except Exception as e:
+            print(f"-----格式化提示词时出错--: {e}")
+            print(f"错误详情: {str(e)}")
+            # 使用默认模板
+            agent_list_str = "\n".join([f"{i+1}. {desc}" for i, desc in enumerate(agent_descriptions)])
+            agent_names_str = ", ".join([f'"{name}"' for name in agent_names])
+            prompt = f"""你是一个智能体调度系统，需要根据用户的问题决定应该由哪个智能体来处理。
+请分析以下用户查询，并确定最适合处理该查询的智能体。
+
+用户查询: "{{query}}"
+
+可用的智能体包括:
+{{agent_list_str}}
+
+请从以下智能体名称中选择匹配的智能体:
+{{agent_names_str}}
+
+请按照以下格式回复:
+{{
+    "agents": [
+        {{
+            "name": "智能体名称"
+        }}
+    ]
+}}
+
+根据智能体的描述和用户查询内容的匹配度来判断应该推荐哪个智能体。
 只返回JSON格式的结果，不要添加其他解释。"""
         print(f"prompt---------{prompt}")
         try:

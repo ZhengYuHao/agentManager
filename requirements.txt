@@ -1,6 +1,6 @@
-fastapi
-uvicorn[standard]
-pydantic
-python-multipart
-httpx
-asyncio-mqtt
+httpx>=0.23.0
+pytest>=6.2.5
+respx>=0.20.0
+fastapi>=0.68.0
+uvicorn>=0.15.0
+pydantic>=2.0.0
