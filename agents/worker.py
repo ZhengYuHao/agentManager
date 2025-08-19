@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from fastapi import APIRouter, HTTPException
 from schemas.agent import AgentExecutionRequest, AgentExecutionResponse
 from core.llm_client import LLMClient

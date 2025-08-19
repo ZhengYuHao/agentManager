@@ -1,8 +1,10 @@
+# -*- coding: utf-8 -*-
 import hashlib
 from fastapi import APIRouter
 from schemas.agent import AgentCreate, AgentType
 from core.agent_registry import AgentRegistry
 from typing import Dict, Any
+from core.utils.log_utils import info
 import asyncio
 
 biology_agent_router = APIRouter()
@@ -47,10 +49,10 @@ def register_biology_agent(agent_registry: AgentRegistry) -> bool:
         # 使用基于名称的一致性ID注册
         agent_id = get_biology_agent_id()
         registered_agent = agent_registry.register_agent(biology_agent, agent_id)
-        print(f"已自动注册默认智能体: {registered_agent.name} (ID: {registered_agent.id})")
+        info(f"已自动注册默认智能体: {registered_agent.name} (ID: {registered_agent.id})")
         return True
     else:
-        print("生物学助手智能体已存在，无需重复注册")
+        info("生物学助手智能体已存在，无需重复注册")
         return False
 
 async def execute_biology_task(input_data: Dict[str, Any]) -> Dict[str, Any]:

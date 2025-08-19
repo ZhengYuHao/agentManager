@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 外部智能体处理器模块
 
@@ -10,13 +11,14 @@ from typing import Dict, Any, Optional
 from core.agent_registry import AgentRegistry
 from schemas.agent import AgentExecutionRequest, AgentExecutionResponse
 import json
+from core.utils.log_utils import info
 
 # 设置日志
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # 外部API基础URL
-EXTERNAL_API_BASE_URL = "http://192.168.1.15:8000/api/v1"
+EXTERNAL_API_BASE_URL = "http://192.168.1.112:8000/api/v1"
 
 
 class ExternalAgentProcessor:
@@ -60,7 +62,8 @@ class ExternalAgentProcessor:
         if agent.source.value != "external":
             raise ValueError(f"智能体 {agent_id} 不是外部智能体，无法使用外部处理器执行")
         
-        print(f"开始执行外部智能体 {agent.name} 的任务")
+        from core.utils.log_utils import info
+        info(f"开始执行外部智能体 {agent.name} 的任务")
         
         # 记录开始时间
         start_time = asyncio.get_event_loop().time()
@@ -120,7 +123,7 @@ class ExternalAgentProcessor:
             "user_question": self._extract_user_question(execution_request)
         }
         
-        print(f"调用外部API: {api_endpoint}, 请求数据: {request_data}")
+        info(f"调用外部API: {api_endpoint}, 请求数据: {request_data}")
         
         try:
             # 发送POST请求到外部API

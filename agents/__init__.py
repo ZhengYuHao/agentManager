@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from .manager import manager_router
 from .scheduler import scheduler_router
 from .worker import worker_router

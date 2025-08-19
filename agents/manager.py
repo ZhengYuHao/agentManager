@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from fastapi import APIRouter, HTTPException, Depends
 from schemas.agent import AgentCreate, AgentUpdate, AgentInDB, TaskRequest
 from core.registry_manager import agent_registry

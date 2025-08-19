@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import json
 import hashlib
 import os
@@ -97,8 +99,9 @@ class QwenClient:
                                  agent_list=agent_list_str,
                                  agent_names_list=agent_names_str)
         except Exception as e:
-            print(f"-----格式化提示词时出错--: {e}")
-            print(f"错误详情: {str(e)}")
+            from core.utils.log_utils import error
+            error(f"-----格式化提示词时出错--: {e}")
+            error(f"错误详情: {str(e)}")
             # 使用默认模板
             agent_list_str = "\n".join([f"{i+1}. {desc}" for i, desc in enumerate(agent_descriptions)])
             agent_names_str = ", ".join([f'"{name}"' for name in agent_names])
@@ -124,7 +127,8 @@ class QwenClient:
 
 根据智能体的描述和用户查询内容的匹配度来判断应该推荐哪个智能体。
 只返回JSON格式的结果，不要添加其他解释。"""
-        print(f"prompt---------{prompt}")
+        from core.utils.log_utils import info
+        info(f"prompt---------{prompt}")
         try:
             response = self.client.chat.completions.create(
                 model=self.model_name,
@@ -135,7 +139,7 @@ class QwenClient:
                 temperature=0.1,
                 max_tokens=500
             )
-            print(f"response---------{response}")
+            info(f"response---------{response}")
             # 解析响应
             content = response.choices[0].message.content
             if content:
@@ -146,13 +150,14 @@ class QwenClient:
                     agent_name = agent.get("name", "")
                     if agent_name:
                         agent["id"] = self._generate_consistent_id(agent_name)
-                print(f"agents---------{agents}")
+                info(f"agents---------{agents}")
                 return agents
             else:
                 return []
         except Exception as e:
             # 出错时返回空列表
-            print(f"解析意图时出错: {e}")
+            from core.utils.log_utils import error
+            error(f"解析意图时出错: {e}")
             return []
 
         
@@ -190,9 +195,10 @@ class QwenClient:
         try:
             user_prompt = format_prompt(user_prompt_template, query=query)
         except Exception as e:
-            print(f"格式化数学助手提示词时出错: {e}")
-            print(f"user_prompt_template内容: {user_prompt_template}")
-            print(f"query内容: {query}")
+            from core.utils.log_utils import error
+            error(f"格式化数学助手提示词时出错: {e}")
+            error(f"user_prompt_template内容: {user_prompt_template}")
+            error(f"query内容: {query}")
             # 使用默认模板
             user_prompt = f"""你是一个专业的初二数学老师，能够详细解答各种初二数学问题。
 请解答以下数学问题，并提供详细的解题过程：
@@ -235,6 +241,8 @@ class QwenClient:
                 "final_answer": "请查看详细解答"
             }
         except Exception as e:
+            from core.utils.log_utils import error
+            error(f"处理数学任务时出错: {e}")
             return {
                 "result": f"处理数学问题时出错: {query}",
                 "explanation": f"错误信息: {str(e)}",
@@ -276,9 +284,10 @@ class QwenClient:
         try:
             user_prompt = format_prompt(user_prompt_template, query=query)
         except Exception as e:
-            print(f"格式化古诗助手提示词时出错: {e}")
-            print(f"user_prompt_template内容: {user_prompt_template}")
-            print(f"query内容: {query}")
+            from core.utils.log_utils import error
+            error(f"格式化古诗助手提示词时出错: {e}")
+            error(f"user_prompt_template内容: {user_prompt_template}")
+            error(f"query内容: {query}")
             # 使用默认模板
             user_prompt = f"""你是一个专业的古典文学老师，能够详细解答各种古诗相关问题。
 请处理以下古诗相关问题，并提供详细的解答：
@@ -361,9 +370,10 @@ class QwenClient:
         try:
             user_prompt = format_prompt(user_prompt_template, query=query)
         except Exception as e:
-            print(f"格式化生物学助手提示词时出错: {e}")
-            print(f"user_prompt_template内容: {user_prompt_template}")
-            print(f"query内容: {query}")
+            from core.utils.log_utils import error
+            error(f"格式化生物学助手提示词时出错: {e}")
+            error(f"user_prompt_template内容: {user_prompt_template}")
+            error(f"query内容: {query}")
             # 使用默认模板
             user_prompt = f"""你是一个专业的生物学老师，能够详细解答各种生物学问题。
 请解答以下生物学问题，并提供详细的解释：
@@ -445,9 +455,10 @@ class QwenClient:
         try:
             user_prompt = format_prompt(user_prompt_template, agent_id=agent_id, query=query)
         except Exception as e:
-            print(f"格式化通用任务助手提示词时出错: {e}")
-            print(f"user_prompt_template内容: {user_prompt_template}")
-            print(f"agent_id内容: {agent_id}, query内容: {query}")
+            from core.utils.log_utils import error
+            error(f"格式化通用任务助手提示词时出错: {e}")
+            error(f"user_prompt_template内容: {user_prompt_template}")
+            error(f"agent_id内容: {agent_id}, query内容: {query}")
             # 使用默认模板
             user_prompt = f"""你是一个通用任务处理助手，需要处理各种类型的任务。
 请处理以下任务请求：

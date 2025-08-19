@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from schemas.agent import AgentCreate, AgentUpdate, AgentInDB, AgentStatus
 from typing import List, Dict, Optional
 import uuid

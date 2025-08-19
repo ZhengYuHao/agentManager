@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -76,9 +77,10 @@ class PromptManager:
         try:
             return template.format(**kwargs)
         except Exception as e:
-            print(f"格式化提示词时出错: {e}")
-            print(f"template内容: {template}")
-            print(f"参数内容: {kwargs}")
+            from core.utils.log_utils import error
+            error(f"格式化提示词时出错: {e}")
+            error(f"template内容: {template}")
+            error(f"参数内容: {kwargs}")
             raise
 
 

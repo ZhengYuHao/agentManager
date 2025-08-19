@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
+
 from fastapi import APIRouter, HTTPException
 from schemas.agent import TaskRequest, TaskResponse
 from core.llm_client import LLMClient
+from core.utils.log_utils import info
 import uuid
 from typing import List
 from core.registry_manager import agent_registry
@@ -29,7 +32,7 @@ async def process_user_query(task_request: TaskRequest):
         # 获取或创建会话ID
         # 如果用户没有提供session_id，则使用task_id作为临时session_id
         # 这样可以确保在单次交互中保持一致性，但无法跨多次独立请求保持会话
-        print(f"session_id: {task_request.session_id}")
+        info(f"session_id: {task_request.session_id}")
         session_id = task_request.session_id if task_request.session_id else task_id
         
         # 更新对话历史
@@ -50,13 +53,13 @@ async def process_user_query(task_request: TaskRequest):
         
         # 使用Qwen模型解析用户意图
         target_agents = await llm_client.parse_intent(last_user_input)
-        print(f"大模型返回的agents: {target_agents}")
+        info(f"大模型返回的agents: {target_agents}")
         
         # 打印注册表中的所有agents信息
         all_agents = agent_registry.list_agents()
-        print("注册表中的所有agents:")
+        info("注册表中的所有agents:")
         for agent in all_agents:
-            print(f"  ID: {agent.id}, Name: {agent.name}, Description: {agent.description}")
+            info(f"  ID: {agent.id}, Name: {agent.name}, Description: {agent.description}")
         
         # 验证智能体是否存在
         validated_agents = []
@@ -81,7 +84,7 @@ async def process_user_query(task_request: TaskRequest):
                         "description": agent.description,
                         "source": agent.source.value  # 添加智能体来源信息
                     })
-        print(f"验证智能体是否存在：{validated_agents}")
+        info(f"验证智能体是否存在：{validated_agents}")
         # 如果是第一次查询，强制不返回智能体，而是生成引导性问题
         if is_first_query:
             # 使用LLM生成引导性问题

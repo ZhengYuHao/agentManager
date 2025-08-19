@@ -1,16 +1,18 @@
+# -*- coding: utf-8 -*-
 import httpx
 import asyncio
 from typing import List, Dict, Any, Optional
 from core.agent_registry import AgentRegistry
 from schemas.agent import AgentCreate, AgentType, AgentSource
-import logging
+from core.utils.log_utils import info, error, warning
+
 
 # 设置日志
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+# logger = logging.getLogger(__name__)
+# logger.setLevel(logging.INFO)
 
 # 外部API地址
-EXTERNAL_API_URL = "http://192.168.1.15:8000/api/v1/agents"
+EXTERNAL_API_URL = "http://192.168.1.112:8000/api/v1/agents"
 
 
 class ExternalAgentSync:
@@ -43,7 +45,7 @@ class ExternalAgentSync:
             ValueError: 当返回的数据格式不正确时抛出异常
         """
         try:
-            logger.info(f"正在从 {EXTERNAL_API_URL} 获取外部智能体信息")
+            info(f"正在从 {EXTERNAL_API_URL} 获取外部智能体信息")
             response = await self.client.get(EXTERNAL_API_URL)
             response.raise_for_status()  # 如果状态码不是2xx会抛出异常
             
@@ -52,37 +54,37 @@ class ExternalAgentSync:
             
             # 确保返回的是列表格式
             if not isinstance(agents_data, list):
-                logger.error(f"外部API返回的数据格式不正确，期望是列表，实际是 {type(agents_data)}: {agents_data}")
+                error(f"外部API返回的数据格式不正确，期望是列表，实际是 {type(agents_data)}: {agents_data}")
                 # 尝试处理可能的包装格式，例如 {"agents": [...]} 或 {"data": [...]}
                 if isinstance(agents_data, dict):
                     # 尝试常见的包装字段
                     for key in ['agents', 'data', 'items', 'results']:
                         if key in agents_data and isinstance(agents_data[key], list):
                             agents_data = agents_data[key]
-                            logger.info(f"从字段 '{key}' 中提取智能体列表")
+                            info(f"从字段 '{key}' 中提取智能体列表")
                             break
                     else:
                         # 如果没有找到合适的字段，将其包装成列表
                         agents_data = [agents_data]
-                        logger.info("将单个对象包装成列表")
+                        info("将单个对象包装成列表")
                 
                 # 如果仍然不是列表，抛出异常
                 if not isinstance(agents_data, list):
                     raise ValueError(f"无法将数据转换为列表格式: {type(agents_data)}")
             
-            logger.info(f"成功获取到 {len(agents_data)} 个外部智能体")
+            info(f"成功获取到 {len(agents_data)} 个外部智能体")
             return agents_data
         except httpx.RequestError as e:
-            logger.error(f"请求外部API时发生网络错误: {e}")
+            error(f"请求外部API时发生网络错误: {e}")
             raise
         except httpx.HTTPStatusError as e:
-            logger.error(f"外部API返回错误状态码 {e.response.status_code}: {e.response.text}")
+            error(f"外部API返回错误状态码 {e.response.status_code}: {e.response.text}")
             raise
         except ValueError as e:
-            logger.error(f"外部API返回数据格式错误: {e}")
+            error(f"外部API返回数据格式错误: {e}")
             raise
         except Exception as e:
-            logger.error(f"解析外部API响应时发生错误: {e}")
+            error(f"解析外部API响应时发生错误: {e}")
             raise
 
     def _map_agent_data(self, agent_data: Dict[str, Any]) -> AgentCreate:
@@ -99,7 +101,7 @@ class ExternalAgentSync:
             ValueError: 当输入数据格式不正确时抛出异常
         """
         # 验证输入数据类型
-        print(f"验证输入类型{agent_data}")
+        info(f"验证输入类型{agent_data}")
         if not isinstance(agent_data, dict):
             raise ValueError(f"期望agent_data为字典类型，但实际类型为: {type(agent_data)}")
         
@@ -112,7 +114,7 @@ class ExternalAgentSync:
         try:
             agent_type = AgentType(agent_type_str.lower())
         except ValueError:
-            logger.warning(f"未知的智能体类型: {agent_type_str}, 使用默认值worker")
+            warning(f"未知的智能体类型: {agent_type_str}, 使用默认值worker")
             agent_type = AgentType.WORKER
             
         capabilities = agent_data.get("capabilities", [])
@@ -150,7 +152,7 @@ class ExternalAgentSync:
             # 从外部API获取智能体列表
             agents_data = await self.fetch_external_agents()
             stats["total"] = len(agents_data)
-            print(f"DDDDDD{agents_data}")
+            info(f"DDDDDD{agents_data}")
             # 验证数据格式
             if not isinstance(agents_data, list):
                 raise ValueError(f"期望agents_data为列表类型，但实际类型为: {type(agents_data)}")
@@ -168,13 +170,13 @@ class ExternalAgentSync:
                     
                     # 根据overwrite参数决定是否覆盖已存在的智能体
                     if agent_exists and not overwrite:
-                        logger.info(f"智能体 {agent_create.name} 已存在，跳过注册")
+                        info(f"智能体 {agent_create.name} 已存在，跳过注册")
                         stats["skipped"] += 1
                         continue
                     
                     # 注册智能体
                     self.registry.register_agent(agent_create, agent_id)
-                    logger.info(f"成功注册外部智能体: {agent_create.name}")
+                    info(f"成功注册外部智能体: {agent_create.name}")
                     stats["registered"] += 1
                     
                 except Exception as e:
@@ -186,7 +188,7 @@ class ExternalAgentSync:
                     else:
                         agent_name = f"invalid_data_{i}"
                         
-                    logger.error(f"注册智能体 {agent_name} 时发生错误: {e}")
+                    error(f"注册智能体 {agent_name} 时发生错误: {e}")
                     stats["errors"] += 1
                     stats["error_details"].append({
                         "agent_name": agent_name,
@@ -194,14 +196,14 @@ class ExternalAgentSync:
                     })
                     
         except Exception as e:
-            logger.error(f"同步外部智能体时发生错误: {e}")
+            error(f"同步外部智能体时发生错误: {e}")
             raise
             
         finally:
             # 确保关闭HTTP客户端
             await self.client.aclose()
             
-        logger.info(f"外部智能体同步完成: {stats}")
+        info(f"外部智能体同步完成: {stats}")
         return stats
 
     async def close(self):
