@@ -164,6 +164,9 @@ class ExternalAgentProcessor:
             # 使用外部注册时的name作为key值
             "sqrt_agent": f"{EXTERNAL_API_URL}/math/sqrt",
             "parallelogram_agent": f"{EXTERNAL_API_URL}/math/parallelogram",
+            "linear_function_agent": f"{EXTERNAL_API_URL}/math/linear_function",
+            "data_analysis_agent": f"{EXTERNAL_API_URL}/math/data_analysis",
+            "pythagorean_agent": f"{EXTERNAL_API_URL}/math/pythagorean",
             # 可以添加更多智能体名称到API端点的映射
             # 示例:
             # "生物智能体": f"{EXTERNAL_API_BASE_URL}/biology/info",
