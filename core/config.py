@@ -15,6 +15,7 @@ class Settings(BaseModel):
     QWEN_API_KEY: str = os.getenv("LLM_API_KEY", "dummy-key")  # Qwen API可能不需要有效的API密钥
     QWEN_MODEL_NAME: str = os.getenv("LLM_MODEL", "qwen2.5-32b")
     QWEN_API_BASE: Optional[str] = os.getenv("LLM_API_BASE", "http://106.227.68.83:8000/v1")
+    EXTERNAL_API_URL: str = os.getenv("EXTERNAL_API_URL", "http://192.168.1.15:8000/api/v1")
     # QWEN_API_KEY: str = os.getenv("LLM_API_KEY", "")  # Qwen API可能不需要有效的API密钥
     # QWEN_MODEL_NAME: str = os.getenv("LLM_MODEL", "qwen-plus")
     # QWEN_API_BASE: Optional[str] = os.getenv("LLM_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")

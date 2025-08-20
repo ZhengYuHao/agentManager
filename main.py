@@ -25,17 +25,17 @@ async def startup_event():
     app.include_router(worker_router, prefix="/api/v1/worker", tags=["worker"])
     app.include_router(manager_router, prefix="/api/v1/manager", tags=["manager"])
     
-    # 导入并注册数学智能体
-    from agents.math_agent import register_math_agent
-    register_math_agent(agent_registry)
+    # # 导入并注册数学智能体
+    # from agents.math_agent import register_math_agent
+    # register_math_agent(agent_registry)
     
-    # 导入并注册古诗智能体
-    from agents.poetry_agent import register_poetry_agent
-    register_poetry_agent(agent_registry)
+    # # 导入并注册古诗智能体
+    # from agents.poetry_agent import register_poetry_agent
+    # register_poetry_agent(agent_registry)
     
-    # 导入并注册生物学智能体
-    from agents.biology_agent import register_biology_agent
-    register_biology_agent(agent_registry)
+    # # 导入并注册生物学智能体
+    # from agents.biology_agent import register_biology_agent
+    # register_biology_agent(agent_registry)
     
     # 从外部API同步智能体
     try:

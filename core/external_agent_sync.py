@@ -12,7 +12,7 @@ from core.utils.log_utils import info, error, warning
 # logger.setLevel(logging.INFO)
 
 # 外部API地址
-EXTERNAL_API_URL = "http://192.168.1.112:8000/api/v1/agents"
+EXTERNAL_API_URL = "http://192.168.1.15:8000/api/v1/agents"
 
 
 class ExternalAgentSync:

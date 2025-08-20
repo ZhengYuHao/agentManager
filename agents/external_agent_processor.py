@@ -5,20 +5,15 @@
 该模块负责处理来自外部注册的智能体的任务执行逻辑
 """
 import asyncio
-import logging
 import httpx
 from typing import Dict, Any, Optional
 from core.agent_registry import AgentRegistry
 from schemas.agent import AgentExecutionRequest, AgentExecutionResponse
 import json
-from core.utils.log_utils import info
-
-# 设置日志
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
+from core.utils.log_utils import info, debug, error
+from core.config import settings
 # 外部API基础URL
-EXTERNAL_API_BASE_URL = "http://192.168.1.112:8000/api/v1"
+EXTERNAL_API_URL = settings.EXTERNAL_API_URL
 
 
 class ExternalAgentProcessor:
@@ -84,7 +79,7 @@ class ExternalAgentProcessor:
                 status="success"
             )
             
-            logger.info(f"外部智能体 {agent.name} 的任务执行成功，耗时: {execution_time:.2f}秒")
+            info(f"外部智能体 {agent.name} 的任务执行成功，耗时: {execution_time:.2f}秒")
             return response
             
         except Exception as e:
@@ -100,7 +95,7 @@ class ExternalAgentProcessor:
                 status="error"
             )
             
-            logger.error(f"外部智能体 {agent.name} 的任务执行失败: {e}")
+            error(f"外部智能体 {agent.name} 的任务执行失败: {e}")
             return response
         # 不在单个请求中关闭客户端，因为处理器是单例的，会在程序结束时统一关闭
 
@@ -137,25 +132,25 @@ class ExternalAgentProcessor:
             if not isinstance(response_data, dict):
                 raise ValueError(f"外部API返回的数据格式不正确，期望是字典，实际是 {type(response_data)}")
             
-            logger.info(f"外部API调用成功，响应数据: {response_data}")
+            info(f"外部API调用成功，响应数据: {response_data}")
             return response_data
             
         except httpx.RequestError as e:
-            logger.error(f"请求外部API时发生网络错误: {e}")
+            error(f"请求外部API时发生网络错误: {e}")
             raise Exception(f"网络错误: {str(e)}")
         except httpx.HTTPStatusError as e:
-            logger.error(f"外部API返回错误状态码 {e.response.status_code}: {e.response.text}")
+            error(f"外部API返回错误状态码 {e.response.status_code}: {e.response.text}")
             raise Exception(f"HTTP错误 {e.response.status_code}: {e.response.text}")
         except json.JSONDecodeError as e:
-            logger.error(f"解析外部API响应JSON时发生错误: {e}")
+            error(f"解析外部API响应JSON时发生错误: {e}")
             raise Exception(f"JSON解析错误: {str(e)}")
         except Exception as e:
-            logger.error(f"调用外部API时发生未知错误: {e}")
+            error(f"调用外部API时发生未知错误: {e}")
             raise Exception(f"未知错误: {str(e)}")
 
     def _get_api_endpoint_by_agent_name(self, agent_name: str) -> str:
         """
-        根据智能体名称确定API端点
+        根据智能体名称获取API端点URL
         
         Args:
             agent_name: 智能体名称
@@ -164,15 +159,29 @@ class ExternalAgentProcessor:
             str: API端点URL
         """
         # 根据智能体名称映射到对应的API端点
-        # 这里可以根据实际需求进行扩展
+        # 这里使用外部注册时提供的name作为key
         endpoint_mapping = {
-            "数学智能体": f"{EXTERNAL_API_BASE_URL}/math/sqrt",
-            "Math Agent": f"{EXTERNAL_API_BASE_URL}/math/sqrt",
+            # 使用外部注册时的name作为key值
+            "sqrt_agent": f"{EXTERNAL_API_URL}/math/sqrt",
+            "parallelogram_agent": f"{EXTERNAL_API_URL}/math/parallelogram",
             # 可以添加更多智能体名称到API端点的映射
+            # 示例:
+            # "生物智能体": f"{EXTERNAL_API_BASE_URL}/biology/info",
+            # "诗歌助手": f"{EXTERNAL_API_BASE_URL}/poetry/generate",
         }
         
-        # 如果找不到映射，则使用默认端点
-        return endpoint_mapping.get(agent_name, f"{EXTERNAL_API_BASE_URL}/math/sqrt")
+        # 记录关键日志
+        debug(f"查找智能体 '{agent_name}' 的API端点")
+        endpoint = endpoint_mapping.get(agent_name)
+        
+        if endpoint:
+            debug(f"找到智能体 '{agent_name}' 的API端点: {endpoint}")
+        else:
+            debug(f"未找到智能体 '{agent_name}' 的API端点，使用默认端点")
+            # 如果找不到映射，则使用默认端点
+            endpoint = f"{EXTERNAL_API_URL}/math/sqrt"
+            
+        return endpoint
 
     def _extract_user_question(self, execution_request: AgentExecutionRequest) -> str:
         """
@@ -199,9 +208,11 @@ class ExternalAgentProcessor:
 
     async def close(self):
         """
-        关闭HTTP客户端连接
+        关闭HTTP客户端
         """
-        await self.client.aclose()
+        if self.client:
+            await self.client.aclose()
+            info("外部智能体处理器的HTTP客户端已关闭")
 
 
 # 全局实例和便捷函数
