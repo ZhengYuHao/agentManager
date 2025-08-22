@@ -1,18 +1,50 @@
 # -*- coding: utf-8 -*-
 
+import os
 from fastapi import APIRouter, HTTPException
 from schemas.agent import TaskRequest, TaskResponse
 from core.llm_client import LLMClient
-from core.utils.log_utils import info
+from core.utils.log_utils import info, error
 import uuid
 from typing import List
 from core.registry_manager import agent_registry
+
+# 获取项目根目录
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 scheduler_router = APIRouter()
 llm_client = LLMClient()
 
 # 存储对话历史的字典
 conversation_history = {}
+
+def read_prompt_template(template_name: str) -> str:
+    """
+    从文件中读取提示词模板
+    
+    Args:
+        template_name: 模板文件名
+        
+    Returns:
+        str: 提示词模板内容
+        
+    Raises:
+        Exception: 当文件不存在或读取失败时抛出异常
+    """
+    template_path = os.path.join(PROJECT_ROOT, "prompt", template_name)
+    
+    try:
+        if not os.path.exists(template_path):
+            error(f"提示词模板文件不存在: {template_path}")
+            raise FileNotFoundError(f"提示词模板文件不存在: {template_path}")
+        
+        with open(template_path, "r", encoding="utf-8") as f:
+            template_content = f.read()
+            info(f"成功读取提示词模板: {template_name}")
+            return template_content
+    except Exception as e:
+        error(f"读取提示词模板文件失败: {template_path}, 错误: {str(e)}")
+        raise
 
 @scheduler_router.post("/process_query", response_model=TaskResponse)
 async def process_user_query(task_request: TaskRequest):
@@ -84,11 +116,18 @@ async def process_user_query(task_request: TaskRequest):
                         "description": agent.description,
                         "source": agent.source.value  # 添加智能体来源信息
                     })
-        info(f"验证智能体是否存在：{validated_agents}")
+        info(f"验证智能体是否存在：{validated_agents},is_first_query:{is_first_query}")
         # 如果是第一次查询，强制不返回智能体，而是生成引导性问题
         if is_first_query:
             # 使用LLM生成引导性问题
-            guidance_prompt = f"""你是一个智能助手，需要根据用户的询问生成引导性问题。根据以下用户查询，生成合适的引导词并进行确认性询问：
+            try:
+                # 从文件读取提示词模板
+                guidance_prompt_template = read_prompt_template("guidance_first_query.txt")
+                guidance_prompt = guidance_prompt_template.format(user_query=task_request.query)
+                info("成功加载第一次查询引导提示词模板")
+            except Exception as e:
+                error(f"读取第一次查询引导提示词模板失败，使用默认提示词: {str(e)}")
+                guidance_prompt = f"""你是一个智能助手，需要根据用户的询问生成引导性问题。根据以下用户查询，生成合适的引导词并进行确认性询问：
 
 用户查询: "{task_request.query}"
 
@@ -99,7 +138,7 @@ async def process_user_query(task_request: TaskRequest):
 3. [生物相关问题]
 请问您是想了解上述哪个方面的问题呢？请明确告知您的需求。"
 """
-            
+
             try:
                 from core.qwen_client import QwenClient
                 qwen_client = QwenClient()
@@ -124,7 +163,7 @@ async def process_user_query(task_request: TaskRequest):
                 "content": guidance_text
             })
             
-            # 第一次查询不返回任何智能体，但需要返回session_id供客户端后续使用
+            # 第一次查询不返回任何智能体，但需要返回s   ession_id供客户端后续使用
             return TaskResponse(
                 task_id=task_id,
                 session_id=session_id,  # 返回session_id供客户端后续使用
@@ -143,7 +182,14 @@ async def process_user_query(task_request: TaskRequest):
             # 如果没有找到明确的智能体需求，生成引导性问题
             if not validated_agents:
                 # 使用LLM生成引导性问题
-                guidance_prompt = f"""你是一个智能助手，需要根据用户的询问生成引导性问题。根据以下用户查询，生成合适的引导词并进行确认性询问：
+                try:
+                    # 从文件读取提示词模板
+                    guidance_prompt_template = read_prompt_template("guidance_subsequent_query.txt")
+                    guidance_prompt = guidance_prompt_template.format(user_query=task_request.query)
+                    info("成功加载非首次查询引导提示词模板")
+                except Exception as e:
+                    error(f"读取非首次查询引导提示词模板失败，使用默认提示词: {str(e)}")
+                    guidance_prompt = f"""你是一个智能助手，需要根据用户的询问生成引导性问题。根据以下用户查询，生成合适的引导词并进行确认性询问：
 
 用户查询: "{task_request.query}"
 
@@ -154,7 +200,7 @@ async def process_user_query(task_request: TaskRequest):
 3. [生物相关问题]
 请问您是想了解上述哪个方面的问题呢？请明确告知您的需求。"
 """
-                
+
                 try:
                     from core.qwen_client import QwenClient
                     qwen_client = QwenClient()
